@@ -1,26 +1,97 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --si-bg: #07091a;
+  --si-bg-card: #0d1130;
+  --si-bg-elevated: #111638;
+  --si-border: #1e2548;
+  --si-border-light: #2a3260;
+  --si-primary: #3b6ef8;
+  --si-primary-hover: #2d5de8;
+  --si-accent: #f0b429;
+  --si-text: #ffffff;
+  --si-text-secondary: #8892b0;
+  --si-text-muted: #4a5480;
+  --si-success: #22c55e;
+  --si-danger: #ef4444;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+[data-theme="light"] {
+  --si-bg: #f0f4ff;
+  --si-bg-card: #dde5f8;
+  --si-bg-elevated: #c8d4f0;
+  --si-border: #b0c0e8;
+  --si-border-light: #8fa3d8;
+  --si-text: #0a0f2e;
+  --si-text-secondary: #3a4470;
+  --si-text-muted: #6a789a;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--si-bg);
+  color: var(--si-text);
+  font-family: Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--si-bg); }
+::-webkit-scrollbar-thumb { background: var(--si-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--si-border-light); }
+
+/* InfoTooltip */
+.si-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+}
+
+.si-tooltip-icon {
+  color: var(--si-text-muted);
+  transition: color 0.15s;
+}
+
+.si-tooltip-wrap:hover .si-tooltip-icon {
+  color: var(--si-text-secondary);
+}
+
+.si-tooltip-bubble {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--si-bg-elevated);
+  color: var(--si-text);
+  border: 1px solid var(--si-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: normal;
+  width: max-content;
+  max-width: 220px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 50;
+}
+
+.si-tooltip-wrap:hover .si-tooltip-bubble {
+  opacity: 1;
+}
+
+@keyframes slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.22s ease-out;
 }

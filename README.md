@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Simulateur Crypto — S'investir
 
-## Getting Started
+Transposition du simulateur crypto de `sinvestir.fr` dans le design system de `simulateurs.sinvestir.fr`.
 
-First, run the development server:
+## Lancer le projet
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# → http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Routes
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| URL | Rôle |
+|-----|------|
+| `/simulateur-crypto` | Application principale dans le shell S'investir |
+| `/embed/simulateur-crypto` | Version embed, iframe-ready |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Exemple d'intégration iframe :**
+```html
+<iframe
+  src="https://votre-domaine.vercel.app/embed/simulateur-crypto"
+  width="100%"
+  height="800"
+  frameborder="0"
+/>
+```
 
-## Learn More
+## Architecture
 
-To learn more about Next.js, take a look at the following resources:
+```
+hooks/
+  useSimulateurCrypto.ts   — logique pure (état, calculs DCA, appels CoinGecko)
+components/
+  SimulateurCryptoUI.tsx   — rendu : consomme le hook, applique le design S'investir
+  shell/                   — AppShell, Header, Sidebar, Logo
+  ui/                      — StatCard et autres primitives
+lib/
+  coingecko.ts             — client API CoinGecko
+app/
+  simulateur-crypto/       — route principale
+  embed/simulateur-crypto/ — route embed (headers X-Frame-Options ouverts)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Principe clé : headless component.** Le hook `useSimulateurCrypto` ne contient aucune dépendance UI. `SimulateurCryptoUI` ne contient aucune logique métier. Changer de design system = écrire un nouveau composant UI qui branche le même hook.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Partis pris techniques
 
-## Deploy on Vercel
+**Next.js + Tailwind CSS**
+Stack identique à celle de S'investir. Zéro friction d'intégration dans l'infrastructure existante (Vercel, Supabase si ajout de persistence). App Router utilisé pour la gestion des métadonnées et le layout par route.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**CoinGecko API (gratuite, sans clé)**
+L'endpoint `/coins/{id}/market_chart/range` fournit les prix historiques en EUR sur n'importe quelle plage. Suffisant pour du DCA backtesting. Limite : rate-limiting sur l'API publique (~30 req/min). En production, on ajouterait une route API Next.js qui met en cache les réponses (Redis ou ISR).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Recharts pour le graphique**
+Léger, compatible SSR, bien maintenu. Alternative envisagée : Chart.js — écarté car moins bien typé et plus lourd à configurer avec React.
+
+**Pas de Supabase dans ce livrable**
+Hors scope pour un simulateur stateless. Mais l'architecture est prête : le hook expose un état serializable, il suffit d'ajouter un `useEffect` pour persister/charger depuis Supabase.
+
+**Design tokens via CSS custom properties**
+Les couleurs S'investir sont définies comme variables CSS (`--si-primary`, `--si-bg`, etc.) plutôt que classes Tailwind figées. Avantage : le composant `SimulateurCryptoUI` peut être thémé en surchargeant ces variables dans le CSS de l'hôte — utile pour l'embedding sur `sinvestir.fr` avec son propre design (jaune/blanc).
+
+## Déploiement Vercel
+
+```bash
+# Depuis le dashboard Vercel : importer le repo, zero-config.
+# Ou via CLI :
+npx vercel --prod
+```
+
+Aucune variable d'environnement requise.
