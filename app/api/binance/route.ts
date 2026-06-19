@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Force EU region — Binance blocks US-based servers (Vercel default is iad1/US)
+export const preferredRegion = ["fra1", "cdg1", "ams1"];
+
 const BASE = "https://api.binance.com/api/v3";
 const MAX_LIMIT = 1000; // Binance max per request
 

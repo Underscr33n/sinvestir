@@ -11,7 +11,6 @@ export function Header() {
   return (
     <header
       className="sticky top-0 z-40 flex h-16 shrink-0 items-center px-4 lg:px-8 border-b border-[var(--si-border)] lg:border-transparent"
-      style={{ background: "var(--si-bg-card)" }}
     >
       <Logo height={28} />
 

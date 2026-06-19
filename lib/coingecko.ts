@@ -23,24 +23,46 @@ export async function searchCoins(query: string): Promise<CoinSearchResult[]> {
   }));
 }
 
+// Maps CoinGecko coin ID to Binance EUR pair symbol
+const BINANCE_EUR_PAIRS: Record<string, string> = {
+  bitcoin: "BTCEUR",
+  ethereum: "ETHEUR",
+  binancecoin: "BNBEUR",
+  ripple: "XRPEUR",
+  solana: "SOLEUR",
+  dogecoin: "DOGEEUR",
+  cardano: "ADAEUR",
+  chainlink: "LINKEUR",
+  polkadot: "DOTEUR",
+  uniswap: "UNIEUR",
+  litecoin: "LTCEUR",
+  stellar: "XLMEUR",
+  "bitcoin-cash": "BCHEUR",
+  "avalanche-2": "AVAXEUR",
+  cosmos: "ATOMEUR",
+};
+
+function toBinanceSymbol(coinId: string, coinSymbol: string): string {
+  return BINANCE_EUR_PAIRS[coinId] ?? `${coinSymbol.toUpperCase()}USDT`;
+}
+
 export async function getMarketChart(
   coinId: string,
   from: Date,
   to: Date,
-  _coinSymbol = ""
+  coinSymbol = ""
 ): Promise<{ timestamp: number; price: number }[]> {
+  const symbol = toBinanceSymbol(coinId, coinSymbol || coinId);
   const qs = new URLSearchParams({
-    path: `/coins/${coinId}/market_chart/range`,
-    vs_currency: "eur",
-    from: String(Math.floor(from.getTime() / 1000)),
-    to: String(Math.floor(to.getTime() / 1000)),
+    symbol,
+    startTime: String(from.getTime()),
+    endTime: String(to.getTime()),
   });
 
-  const res = await fetch(`/api/coingecko?${qs.toString()}`);
-  if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
+  const res = await fetch(`/api/binance?${qs.toString()}`);
+  if (!res.ok) throw new Error(`Données indisponibles pour cet actif (${res.status})`);
 
-  const data = await res.json() as { prices?: [number, number][] };
-  if (!data.prices?.length) throw new Error("Aucune donnée disponible pour cet actif sur cette période.");
-
-  return data.prices.map(([ts, price]) => ({ timestamp: ts, price }));
+  const klines: [number, string][] = await res.json();
+  if (!klines.length) throw new Error("Aucune donnée disponible pour cet actif sur cette période.");
+  return klines.map(([ts, price]) => ({ timestamp: ts, price: parseFloat(price) }));
 }
