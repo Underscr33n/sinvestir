@@ -23,46 +23,36 @@ export async function searchCoins(query: string): Promise<CoinSearchResult[]> {
   }));
 }
 
-// Maps CoinGecko coin ID to Binance EUR pair symbol
-const BINANCE_EUR_PAIRS: Record<string, string> = {
-  bitcoin: "BTCEUR",
-  ethereum: "ETHEUR",
-  binancecoin: "BNBEUR",
-  ripple: "XRPEUR",
-  solana: "SOLEUR",
-  dogecoin: "DOGEEUR",
-  cardano: "ADAEUR",
-  chainlink: "LINKEUR",
-  polkadot: "DOTEUR",
-  uniswap: "UNIEUR",
-  litecoin: "LTCEUR",
-  stellar: "XLMEUR",
-  "bitcoin-cash": "BCHEUR",
-  "avalanche-2": "AVAXEUR",
-  cosmos: "ATOMEUR",
-};
-
-function toBinanceSymbol(coinId: string, coinSymbol: string): string {
-  return BINANCE_EUR_PAIRS[coinId] ?? `${coinSymbol.toUpperCase()}USDT`;
-}
+// CoinGecko Demo plan blocks days=max and large /range windows.
+// Workaround: split the date range into ≤365-day chunks and concatenate results.
+// Each /market_chart/range call with a ≤365-day window returns daily granularity.
+const CHUNK_MS = 365 * 24 * 3600 * 1000;
 
 export async function getMarketChart(
   coinId: string,
   from: Date,
   to: Date,
-  coinSymbol = ""
+  _coinSymbol = ""
 ): Promise<{ timestamp: number; price: number }[]> {
-  const symbol = toBinanceSymbol(coinId, coinSymbol || coinId);
-  const qs = new URLSearchParams({
-    symbol,
-    startTime: String(from.getTime()),
-    endTime: String(to.getTime()),
-  });
+  const allPrices: { timestamp: number; price: number }[] = [];
+  let cursor = from.getTime();
+  const end = to.getTime();
 
-  const res = await fetch(`/api/binance?${qs.toString()}`);
-  if (!res.ok) throw new Error(`Données indisponibles pour cet actif (${res.status})`);
+  while (cursor < end) {
+    const chunkEnd = Math.min(cursor + CHUNK_MS, end);
+    const data = await cgFetch(`/coins/${coinId}/market_chart/range`, {
+      vs_currency: "eur",
+      from: String(Math.floor(cursor / 1000)),
+      to: String(Math.floor(chunkEnd / 1000)),
+    }) as { prices?: [number, number][] };
 
-  const klines: [number, string][] = await res.json();
-  if (!klines.length) throw new Error("Aucune donnée disponible pour cet actif sur cette période.");
-  return klines.map(([ts, price]) => ({ timestamp: ts, price: parseFloat(price) }));
+    if (data.prices?.length) {
+      allPrices.push(...data.prices.map(([ts, price]) => ({ timestamp: ts, price })));
+    }
+
+    cursor = chunkEnd + 1;
+  }
+
+  if (!allPrices.length) throw new Error("Aucune donnée disponible pour cet actif sur cette période.");
+  return allPrices;
 }
