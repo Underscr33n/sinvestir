@@ -7,7 +7,6 @@ const nextConfig: NextConfig = {
         // Les routes /embed/* peuvent être affichées en iframe depuis n'importe quelle origine
         source: "/embed/:path*",
         headers: [
-          { key: "X-Frame-Options", value: "ALLOWALL" },
           { key: "Content-Security-Policy", value: "frame-ancestors *" },
         ],
       },
